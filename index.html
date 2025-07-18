@@ -69,6 +69,7 @@
       display: flex;
       flex-direction: column;
       cursor: pointer;
+      position: relative;
     }
 
     .product-card:hover {
@@ -104,19 +105,52 @@
       color: #28a745;
     }
 
-    .delete-btn {
+    .btn-group {
+      display: flex;
+      gap: 8px;
       margin-top: 5px;
-      background-color: #dc3545;
-      color: white;
+      flex-wrap: wrap;
+    }
+
+    button.delete-btn,
+    button.confirm-btn {
+      flex: 1;
       border: none;
       padding: 6px 10px;
       border-radius: 5px;
       cursor: pointer;
       font-size: 0.9em;
+      color: white;
+      transition: background 0.3s;
     }
 
-    .delete-btn:hover {
+    button.delete-btn {
+      background-color: #dc3545;
+    }
+    button.delete-btn:hover {
       background-color: #bd2130;
+    }
+
+    button.confirm-btn {
+      background-color: #28a745;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-weight: bold;
+    }
+    button.confirm-btn:hover {
+      background-color: #1e7e34;
+    }
+
+    .confirmed {
+      background-color: #218838 !important;
+      cursor: default;
+    }
+
+    .confirmed span.checkmark {
+      color: #fff;
+      font-size: 1.2em;
     }
 
     .loading, .error {
@@ -197,12 +231,39 @@
   let products = [];
   let lastProductCount = 0;
 
-  function showNotification(text = "✅ Yeni məhsul əlavə olundu!") {
-    notification.textContent = text;
-    notification.style.display = "block";
-    setTimeout(() => {
-      notification.style.display = "none";
-    }, 4000);
+  // LocalStorage açar adı
+  const PAYMENT_STORAGE_KEY = "paymentConfirmedProducts";
+
+  // Ödəniş təsdiqini localStorage-dən yüklə
+  function loadConfirmedPayments() {
+    const saved = localStorage.getItem(PAYMENT_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  }
+
+  // LocalStorage-ə yaz
+  function saveConfirmedPayments(obj) {
+    localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(obj));
+  }
+
+  // Ödənişi təsdiqlə düyməsi kliklənəndə
+  function confirmPayment(productId, btn) {
+    let confirmedPayments = loadConfirmedPayments();
+    confirmedPayments[productId] = true;
+    saveConfirmedPayments(confirmedPayments);
+    updateConfirmButton(btn, true);
+  }
+
+  // Təsdiq vəziyyətinə görə düyməni yenilə
+  function updateConfirmButton(btn, confirmed) {
+    if (confirmed) {
+      btn.classList.add("confirmed");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="checkmark">✔️</span> Ödəniş təsdiqləndi`;
+    } else {
+      btn.classList.remove("confirmed");
+      btn.disabled = false;
+      btn.textContent = "Ödənişi təsdiqlə";
+    }
   }
 
   function createProductCard(product) {
@@ -215,20 +276,26 @@
         <h2>${product.title || 'Adsız Məhsul'}</h2>
         <p class="price">${product.price || 0} ₼</p>
         <p>ID: ${product.ID || ''}</p>
-        <button class="delete-btn">Sil</button>
+        <div class="btn-group">
+          <button class="delete-btn">Sil</button>
+          <button class="confirm-btn">Ödənişi təsdiqlə</button>
+        </div>
       </div>
     `;
 
     // Modal açılması
-    card.addEventListener("click", () => {
-      modalContent.innerHTML = `
-        <img src="data:image/jpeg;base64,${product.photo}" />
-        <h2>${product.title || 'Adsız Məhsul'}</h2>
-        <p class="price">${product.price || 0} ₼</p>
-        <p>ID: ${product.ID || ''}</p>
-        <button onclick="modal.style.display='none'" style="margin-top:10px;">Bağla</button>
-      `;
-      modal.style.display = "flex";
+    card.addEventListener("click", (e) => {
+      // Əgər klik düymələrdən birinə deyilirsə modal aç
+      if (!e.target.classList.contains("delete-btn") && !e.target.classList.contains("confirm-btn")) {
+        modalContent.innerHTML = `
+          <img src="data:image/jpeg;base64,${product.photo}" />
+          <h2>${product.title || 'Adsız Məhsul'}</h2>
+          <p class="price">${product.price || 0} ₼</p>
+          <p>ID: ${product.ID || ''}</p>
+          <button onclick="modal.style.display='none'" style="margin-top:10px;">Bağla</button>
+        `;
+        modal.style.display = "flex";
+      }
     });
 
     // Sil düyməsi
@@ -237,7 +304,6 @@
       e.stopPropagation(); // Modal açılmasın
       if (confirm("Bu məhsulu silmək istədiyinizə əminsiniz?")) {
         try {
-          // Silmək üçün ID olaraq _id varsa onu, yoxsa ID istifadə edilir
           const idToDelete = product._id || product.ID;
           const res = await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
@@ -247,6 +313,19 @@
           alert("Silinmə zamanı xəta baş verdi.");
         }
       }
+    });
+
+    // Ödənişi təsdiqlə düyməsi
+    const confirmBtn = card.querySelector(".confirm-btn");
+    // Yüklənən zaman localStorage-dən təsdiq statusunu götür
+    const confirmedPayments = loadConfirmedPayments();
+    if (confirmedPayments[product.ID]) {
+      updateConfirmButton(confirmBtn, true);
+    }
+
+    confirmBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      confirmPayment(product.ID, confirmBtn);
     });
 
     return card;
@@ -263,7 +342,6 @@
     let sorted = [...products];
     switch (type) {
       case "new":
-        // ID-lərin sortlanması: yeni ən yuxarda
         sorted.sort((a, b) => (b._id || b.ID).localeCompare(a._id || a.ID));
         break;
       case "old":
@@ -306,15 +384,22 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     fetchProducts();
-    setInterval(() => fetchProducts(true), 10000); // 10 saniyədə bir yeniləmə yoxlanır
+    setInterval(() => fetchProducts(true), 10000);
   });
 
-  // Modalı ekrandan kliklə bağlamaq
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
       modal.style.display = "none";
     }
   });
+
+  function showNotification(text = "✅ Yeni məhsul əlavə olundu!") {
+    notification.textContent = text;
+    notification.style.display = "block";
+    setTimeout(() => {
+      notification.style.display = "none";
+    }, 4000);
+  }
 </script>
 
 </body>
