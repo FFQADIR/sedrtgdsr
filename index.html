@@ -177,14 +177,41 @@
       max-width: 320px;
       width: 90%;
       text-align: center;
+      position: relative;
     }
 
     #modalContent img {
       width: 100%;
       height: auto;
       margin-bottom: 10px;
+      border-radius: 8px;
     }
 
+    .modal-close-btn {
+      margin-top: 10px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+      transition: background-color 0.3s;
+    }
+
+    .modal-close-btn:hover {
+      background-color: #bd2130;
+    }
+
+    .close-text {
+      display: inline; /* Default görünür */
+    }
+
+    /* Mobil üçün: "Bağla" yazısını gizlət və düyməni kiçilt */
     @media (max-width: 600px) {
       .product-container {
         grid-template-columns: repeat(2, 1fr);
@@ -196,6 +223,17 @@
 
       .product-card img {
         height: 100px;
+      }
+
+      .modal-close-btn {
+        padding: 6px 10px;
+        font-size: 1.2em;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
+      }
+      .close-text {
+        display: none; /* Mobilde yazı yox */
       }
     }
   </style>
@@ -292,9 +330,16 @@
           <h2>${product.title || 'Adsız Məhsul'}</h2>
           <p class="price">${product.price || 0} ₼</p>
           <p>ID: ${product.ID || ''}</p>
-          <button onclick="modal.style.display='none'" style="margin-top:10px;">Bağla</button>
+          <button id="modalCloseBtn" class="modal-close-btn">× <span class="close-text">Bağla</span></button>
         `;
         modal.style.display = "flex";
+      }
+    });
+
+    // Modal bağlama düyməsinə klik funksiyası
+    modalContent.addEventListener("click", (e) => {
+      if (e.target.id === "modalCloseBtn" || e.target.closest("#modalCloseBtn")) {
+        modal.style.display = "none";
       }
     });
 
@@ -382,17 +427,6 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    fetchProducts();
-    setInterval(() => fetchProducts(true), 10000);
-  });
-
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      modal.style.display = "none";
-    }
-  });
-
   function showNotification(text = "✅ Yeni məhsul əlavə olundu!") {
     notification.textContent = text;
     notification.style.display = "block";
@@ -400,6 +434,18 @@
       notification.style.display = "none";
     }, 4000);
   }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchProducts();
+    setInterval(() => fetchProducts(true), 10000); // 10 saniyədə bir yoxla
+  });
+
+  // Modalı ekrandan çıxmaq üçün kliklə bağlamaq
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.style.display = "none";
+    }
+  });
 </script>
 
 </body>
