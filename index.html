@@ -105,18 +105,30 @@
       color: #28a745;
     }
 
-    .delete-btn {
+    .delete-btn, .confirm-btn {
       margin-top: 10px;
-      background-color: #dc3545;
-      color: white;
-      border: none;
       padding: 8px 12px;
+      border: none;
       border-radius: 5px;
       cursor: pointer;
     }
 
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+
     .delete-btn:hover {
       background-color: #bd2130;
+    }
+
+    .confirm-btn {
+      background-color: #17a2b8;
+      color: white;
+    }
+
+    .confirm-btn:hover {
+      background-color: #117a8b;
     }
 
     .loading,
@@ -173,30 +185,47 @@
     const card = document.createElement("div");
     card.className = "product-card";
 
+    const id = product._id || product.ID;
+    const confirmedPayments = JSON.parse(localStorage.getItem("confirmedPayments") || "[]");
+    const isConfirmed = confirmedPayments.includes(id);
+
     card.innerHTML = `
       <img src="data:image/jpeg;base64,${product.photo}" alt="${product.title || 'Məhsul'}" />
       <div class="product-info">
         <h2>${product.title || 'Adsız Məhsul'}</h2>
         <p class="price">${product.price || 0} ₼</p>
-        <p>ID: ${product._id || product.ID}</p>
+        <p>ID: ${id}</p>
+        ${isConfirmed ? `<p style="color: green; font-weight: bold;">✅ Ödəniş təsdiqləndi</p>` : ""}
         <button class="delete-btn">Sil</button>
+        ${!isConfirmed ? `<button class="confirm-btn">✅ Ödənişi Təsdiqlə</button>` : ""}
       </div>
     `;
 
     const deleteBtn = card.querySelector(".delete-btn");
-    const id = product._id || product.ID;
     deleteBtn.addEventListener("click", async () => {
       if (confirm("Bu məhsulu silmək istədiyinizə əminsiniz?")) {
         try {
           const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
           showNotification("🗑️ Məhsul silindi!");
-          await fetchProducts(); // Silinəndən sonra yenidən yüklə
+          await fetchProducts(); // Yenilə
         } catch (err) {
           alert("Silinmə zamanı xəta baş verdi.");
         }
       }
     });
+
+    const confirmBtn = card.querySelector(".confirm-btn");
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", () => {
+        if (confirm("Bu məhsulun ödənişini təsdiqləmək istəyirsiniz?")) {
+          confirmedPayments.push(id);
+          localStorage.setItem("confirmedPayments", JSON.stringify(confirmedPayments));
+          showNotification("✅ Ödəniş təsdiqləndi!");
+          fetchProducts(); // Yenidən yüklə
+        }
+      });
+    }
 
     return card;
   }
@@ -254,7 +283,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     fetchProducts();
-    setInterval(() => fetchProducts(true), 10000); // 10 saniyədən bir yeni mal üçün yoxla
+    setInterval(() => fetchProducts(true), 10000);
   });
 </script>
 
