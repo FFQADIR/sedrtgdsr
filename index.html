@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sortlu Məhsullar</title>
+  <title>Məhsullar</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -54,10 +54,9 @@
     }
 
     .product-container {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 15px;
-      justify-content: center;
     }
 
     .product-card {
@@ -65,12 +64,11 @@
       border: 1px solid #ccc;
       border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 300px;
       overflow: hidden;
       transition: transform 0.2s;
       display: flex;
       flex-direction: column;
+      cursor: pointer;
     }
 
     .product-card:hover {
@@ -79,25 +77,26 @@
 
     .product-card img {
       width: 100%;
-      height: auto;
+      height: 120px;
       object-fit: contain;
       background-color: #eee;
     }
 
     .product-info {
-      padding: 15px;
+      padding: 10px;
       flex-grow: 1;
     }
 
     .product-info h2 {
-      font-size: 1.1em;
-      margin-bottom: 10px;
+      font-size: 1em;
+      margin-bottom: 5px;
       color: #333;
     }
 
     .product-info p {
-      margin: 4px 0;
+      margin: 3px 0;
       color: #666;
+      font-size: 0.9em;
     }
 
     .price {
@@ -105,42 +104,64 @@
       color: #28a745;
     }
 
-    .delete-btn, .confirm-btn {
-      margin-top: 10px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
     .delete-btn {
+      margin-top: 5px;
       background-color: #dc3545;
       color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9em;
     }
 
     .delete-btn:hover {
       background-color: #bd2130;
     }
 
-    .confirm-btn {
-      background-color: #17a2b8;
-      color: white;
-    }
-
-    .confirm-btn:hover {
-      background-color: #117a8b;
-    }
-
-    .loading,
-    .error {
+    .loading, .error {
       text-align: center;
       font-size: 1.2em;
       margin-top: 30px;
     }
 
+    /* Modal stil */
+    #productModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #modalContent {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 320px;
+      width: 90%;
+      text-align: center;
+    }
+
+    #modalContent img {
+      width: 100%;
+      height: auto;
+      margin-bottom: 10px;
+    }
+
     @media (max-width: 600px) {
+      .product-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
       .product-card {
-        max-width: 100%;
+        font-size: 12px;
+      }
+
+      .product-card img {
+        height: 100px;
       }
     }
   </style>
@@ -148,7 +169,6 @@
 <body>
 
 <div id="notification">✅ Yeni məhsul əlavə olundu!</div>
-
 <h1>Məhsullar</h1>
 
 <div id="sort-buttons">
@@ -158,17 +178,21 @@
   <button onclick="sortProducts('high-low')">Çoxdan Aza</button>
 </div>
 
-<div id="product-container" class="product-container">
-  <!-- Məhsullar bura yüklənəcək -->
-</div>
-
+<div id="product-container" class="product-container"></div>
 <p id="message" class="loading">Məlumatlar yüklənir...</p>
+
+<!-- Modal -->
+<div id="productModal">
+  <div id="modalContent"></div>
+</div>
 
 <script>
   const API_URL = "https://ffqadirphoto.vercel.app/api/photo";
   const productContainer = document.getElementById("product-container");
   const message = document.getElementById("message");
   const notification = document.getElementById("notification");
+  const modal = document.getElementById("productModal");
+  const modalContent = document.getElementById("modalContent");
 
   let products = [];
   let lastProductCount = 0;
@@ -185,47 +209,45 @@
     const card = document.createElement("div");
     card.className = "product-card";
 
-    const id = product._id || product.ID;
-    const confirmedPayments = JSON.parse(localStorage.getItem("confirmedPayments") || "[]");
-    const isConfirmed = confirmedPayments.includes(id);
-
     card.innerHTML = `
       <img src="data:image/jpeg;base64,${product.photo}" alt="${product.title || 'Məhsul'}" />
       <div class="product-info">
         <h2>${product.title || 'Adsız Məhsul'}</h2>
         <p class="price">${product.price || 0} ₼</p>
-        <p>ID: ${id}</p>
-        ${isConfirmed ? `<p style="color: green; font-weight: bold;">✅ Ödəniş təsdiqləndi</p>` : ""}
+        <p>ID: ${product.ID || ''}</p>
         <button class="delete-btn">Sil</button>
-        ${!isConfirmed ? `<button class="confirm-btn">✅ Ödənişi Təsdiqlə</button>` : ""}
       </div>
     `;
 
+    // Modal açılması
+    card.addEventListener("click", () => {
+      modalContent.innerHTML = `
+        <img src="data:image/jpeg;base64,${product.photo}" />
+        <h2>${product.title || 'Adsız Məhsul'}</h2>
+        <p class="price">${product.price || 0} ₼</p>
+        <p>ID: ${product.ID || ''}</p>
+        <button onclick="modal.style.display='none'" style="margin-top:10px;">Bağla</button>
+      `;
+      modal.style.display = "flex";
+    });
+
+    // Sil düyməsi
     const deleteBtn = card.querySelector(".delete-btn");
-    deleteBtn.addEventListener("click", async () => {
+    deleteBtn.addEventListener("click", async (e) => {
+      e.stopPropagation(); // Modal açılmasın
       if (confirm("Bu məhsulu silmək istədiyinizə əminsiniz?")) {
         try {
-          const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+          // Silmək üçün ID olaraq _id varsa onu, yoxsa ID istifadə edilir
+          const idToDelete = product._id || product.ID;
+          const res = await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
           showNotification("🗑️ Məhsul silindi!");
-          await fetchProducts(); // Yenilə
+          await fetchProducts();
         } catch (err) {
           alert("Silinmə zamanı xəta baş verdi.");
         }
       }
     });
-
-    const confirmBtn = card.querySelector(".confirm-btn");
-    if (confirmBtn) {
-      confirmBtn.addEventListener("click", () => {
-        if (confirm("Bu məhsulun ödənişini təsdiqləmək istəyirsiniz?")) {
-          confirmedPayments.push(id);
-          localStorage.setItem("confirmedPayments", JSON.stringify(confirmedPayments));
-          showNotification("✅ Ödəniş təsdiqləndi!");
-          fetchProducts(); // Yenidən yüklə
-        }
-      });
-    }
 
     return card;
   }
@@ -241,16 +263,17 @@
     let sorted = [...products];
     switch (type) {
       case "new":
+        // ID-lərin sortlanması: yeni ən yuxarda
         sorted.sort((a, b) => (b._id || b.ID).localeCompare(a._id || a.ID));
         break;
       case "old":
         sorted.sort((a, b) => (a._id || a.ID).localeCompare(b._id || b.ID));
         break;
       case "low-high":
-        sorted.sort((a, b) => a.price - b.price);
+        sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
         break;
       case "high-low":
-        sorted.sort((a, b) => b.price - a.price);
+        sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
         break;
     }
     displayProducts(sorted);
@@ -283,7 +306,14 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     fetchProducts();
-    setInterval(() => fetchProducts(true), 10000);
+    setInterval(() => fetchProducts(true), 10000); // 10 saniyədə bir yeniləmə yoxlanır
+  });
+
+  // Modalı ekrandan kliklə bağlamaq
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.style.display = "none";
+    }
   });
 </script>
 
