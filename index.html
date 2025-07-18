@@ -12,6 +12,20 @@
       margin: 0;
     }
 
+    #notification {
+      display: none;
+      background: #28a745;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      font-weight: bold;
+    }
+
     h1 {
       text-align: center;
       margin-bottom: 10px;
@@ -121,6 +135,8 @@
 </head>
 <body>
 
+<div id="notification">✅ Yeni məhsul əlavə olundu!</div>
+
 <h1>Məhsullar</h1>
 
 <div id="sort-buttons">
@@ -140,9 +156,19 @@
   const API_URL = "https://ffqadirphoto.vercel.app/api/photo";
   const productContainer = document.getElementById("product-container");
   const message = document.getElementById("message");
-  let products = []; // Bütün məhsullar saxlanacaq
+  const notification = document.getElementById("notification");
 
-  // Məhsulu DOM-a əlavə edən funksiya
+  let products = [];
+  let lastProductCount = 0;
+
+  function showNotification(text = "✅ Yeni məhsul əlavə olundu!") {
+    notification.textContent = text;
+    notification.style.display = "block";
+    setTimeout(() => {
+      notification.style.display = "none";
+    }, 4000);
+  }
+
   function createProductCard(product) {
     const card = document.createElement("div");
     card.className = "product-card";
@@ -157,7 +183,6 @@
       </div>
     `;
 
-    // Sil düyməsi
     const deleteBtn = card.querySelector(".delete-btn");
     const id = product._id || product.ID;
     deleteBtn.addEventListener("click", async () => {
@@ -165,7 +190,8 @@
         try {
           const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
-          card.remove();
+          showNotification("🗑️ Məhsul silindi!");
+          await fetchProducts(); // Silinəndən sonra yenidən yüklə
         } catch (err) {
           alert("Silinmə zamanı xəta baş verdi.");
         }
@@ -175,7 +201,6 @@
     return card;
   }
 
-  // Məhsulları göstərən funksiya
   function displayProducts(list) {
     productContainer.innerHTML = "";
     list.forEach(p => {
@@ -183,16 +208,14 @@
     });
   }
 
-  // Sort funksiyası
   function sortProducts(type) {
-    let sorted = [...products]; // Kopyasını götür
-
+    let sorted = [...products];
     switch (type) {
       case "new":
-        sorted.sort((a, b) => (b._id || b.ID) - (a._id || a.ID));
+        sorted.sort((a, b) => (b._id || b.ID).localeCompare(a._id || a.ID));
         break;
       case "old":
-        sorted.sort((a, b) => (a._id || a.ID) - (b._id || b.ID));
+        sorted.sort((a, b) => (a._id || a.ID).localeCompare(b._id || b.ID));
         break;
       case "low-high":
         sorted.sort((a, b) => a.price - b.price);
@@ -201,25 +224,38 @@
         sorted.sort((a, b) => b.price - a.price);
         break;
     }
-
     displayProducts(sorted);
   }
 
-  // API-dən məhsulları çəkirik
-  async function fetchProducts() {
+  async function fetchProducts(checkForNew = false) {
     try {
       const res = await fetch(API_URL);
       const data = await res.json();
-      products = data.allQolbaq || [];
-      message.textContent = "";
-      sortProducts("new"); // İlk olaraq yeni sıralanmış göstər
+      const newProducts = data.allQolbaq || [];
+
+      if (checkForNew) {
+        if (newProducts.length > lastProductCount) {
+          showNotification();
+          products = newProducts;
+          lastProductCount = newProducts.length;
+          sortProducts("new");
+        }
+      } else {
+        products = newProducts;
+        lastProductCount = newProducts.length;
+        message.textContent = "";
+        sortProducts("new");
+      }
     } catch (err) {
       message.textContent = "Məhsulları yükləmək mümkün olmadı.";
       message.className = "error";
     }
   }
 
-  document.addEventListener("DOMContentLoaded", fetchProducts);
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchProducts();
+    setInterval(() => fetchProducts(true), 10000); // 10 saniyədən bir yeni mal üçün yoxla
+  });
 </script>
 
 </body>
