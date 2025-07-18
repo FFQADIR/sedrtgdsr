@@ -201,6 +201,8 @@
       gap: 6px;
       user-select: none;
       transition: background-color 0.3s;
+      position: relative;
+      z-index: 10;
     }
 
     .modal-close-btn:hover {
@@ -226,14 +228,16 @@
       }
 
       .modal-close-btn {
-        padding: 6px 10px;
-        font-size: 1.2em;
+        padding: 0;
         width: 40px;
         height: 40px;
+        font-size: 2.2rem;
         justify-content: center;
+        align-items: center;
+        line-height: 1;
       }
       .close-text {
-        display: none; /* Mobilde yazı yox */
+        display: none;
       }
     }
   </style>
