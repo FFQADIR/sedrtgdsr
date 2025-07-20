@@ -11,7 +11,6 @@
       padding: 20px;
       margin: 0;
     }
-
     #notification {
       display: none;
       background: #28a745;
@@ -25,21 +24,19 @@
       z-index: 999;
       font-weight: bold;
     }
-
     h1 {
       text-align: center;
       margin-bottom: 10px;
     }
-
     #sort-buttons {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
-
-    #sort-buttons button {
+    #sort-buttons button,
+    #delete-all-btn {
       padding: 10px 15px;
       border: none;
       border-radius: 5px;
@@ -48,28 +45,15 @@
       cursor: pointer;
       transition: background 0.3s;
     }
-
-    #sort-buttons button:hover {
+    #sort-buttons button:hover,
+    #delete-all-btn:hover {
       background-color: #0056b3;
     }
-
-    #deleteAllBtn {
-      padding: 10px 20px;
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 20px;
-    }
-
     .product-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 15px;
     }
-
     .product-card {
       background: #fff;
       border: 1px solid #ccc;
@@ -82,47 +66,39 @@
       cursor: pointer;
       position: relative;
     }
-
     .product-card:hover {
       transform: translateY(-4px);
     }
-
     .product-card img {
       width: 100%;
       height: 120px;
       object-fit: contain;
       background-color: #eee;
     }
-
     .product-info {
       padding: 10px;
       flex-grow: 1;
     }
-
     .product-info h2 {
       font-size: 1em;
       margin-bottom: 5px;
       color: #333;
     }
-
     .product-info p {
       margin: 3px 0;
       color: #666;
       font-size: 0.9em;
     }
-
     .price {
       font-weight: bold;
       color: #28a745;
     }
-
     .btn-group {
       display: flex;
       gap: 8px;
       margin-top: 5px;
       flex-wrap: wrap;
     }
-
     button.delete-btn,
     button.confirm-btn {
       flex: 1;
@@ -134,15 +110,12 @@
       color: white;
       transition: background 0.3s;
     }
-
     button.delete-btn {
       background-color: #dc3545;
     }
-
     button.delete-btn:hover {
       background-color: #bd2130;
     }
-
     button.confirm-btn {
       background-color: #28a745;
       display: flex;
@@ -151,27 +124,22 @@
       gap: 5px;
       font-weight: bold;
     }
-
     button.confirm-btn:hover {
       background-color: #1e7e34;
     }
-
     .confirmed {
       background-color: #218838 !important;
       cursor: default;
     }
-
     .confirmed span.checkmark {
       color: #fff;
       font-size: 1.2em;
     }
-
     .loading, .error {
       text-align: center;
       font-size: 1.2em;
       margin-top: 30px;
     }
-
     #productModal {
       display: none;
       position: fixed;
@@ -181,7 +149,6 @@
       justify-content: center;
       align-items: center;
     }
-
     #modalContent {
       position: relative;
       background: #fff;
@@ -191,14 +158,12 @@
       width: 90%;
       text-align: center;
     }
-
     #modalContent img {
       width: 100%;
       height: auto;
       margin-bottom: 10px;
       border-radius: 8px;
     }
-
     .modal-close-btn {
       position: absolute;
       top: 10px;
@@ -214,28 +179,22 @@
       align-items: center;
       gap: 6px;
     }
-
     .modal-close-btn:hover {
       background-color: #bd2130;
     }
-
     .close-text {
       display: inline;
     }
-
     @media (max-width: 600px) {
       .product-container {
         grid-template-columns: repeat(2, 1fr);
       }
-
       .product-card {
         font-size: 12px;
       }
-
       .product-card img {
         height: 100px;
       }
-
       .modal-close-btn {
         width: 40px;
         height: 40px;
@@ -243,7 +202,6 @@
         font-size: 2.2rem;
         justify-content: center;
       }
-
       .close-text {
         display: none;
       }
@@ -260,50 +218,35 @@
   <button onclick="sortProducts('old')">Köhnə</button>
   <button onclick="sortProducts('low-high')">Azdan Çoxa</button>
   <button onclick="sortProducts('high-low')">Çoxdan Aza</button>
-</div>
-
-<div style="text-align: center;">
-  <button id="deleteAllBtn">🗑️ Bütün məhsulları sil</button>
+  <button id="delete-all-btn">🗑️ Hamısını sil</button>
 </div>
 
 <div id="product-container" class="product-container"></div>
 <p id="message" class="loading">Məlumatlar yüklənir...</p>
 
+<!-- Modal -->
 <div id="productModal">
   <div id="modalContent"></div>
 </div>
 
 <script>
+  // Şifrə yoxlaması
+  const ADMIN_CODE = "qadirxpm";
+  const enteredCode = prompt("Admin kodunu daxil edin:");
+  if (enteredCode !== ADMIN_CODE) {
+    document.body.innerHTML = "<h2 style='color:red; text-align:center; margin-top:50px;'>⛔ Səhv kod. Giriş rədd edildi.</h2>";
+    throw new Error("Giriş rədd edildi.");
+  }
+
   const API_URL = "https://ffqadir.az/backendd/api/photo";
   const productContainer = document.getElementById("product-container");
   const message = document.getElementById("message");
   const notification = document.getElementById("notification");
   const modal = document.getElementById("productModal");
   const modalContent = document.getElementById("modalContent");
-  const deleteAllBtn = document.getElementById("deleteAllBtn");
-
   let products = [];
   let lastProductCount = 0;
   const PAYMENT_STORAGE_KEY = "paymentConfirmedProducts";
-
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${day}.${month}.${year} ${hours}:${minutes}`;
-  }
-
-  function showNotification(text = "✅ Yeni məhsul əlavə olundu!") {
-    notification.textContent = text;
-    notification.style.display = "block";
-    setTimeout(() => {
-      notification.style.display = "none";
-    }, 4000);
-  }
 
   function loadConfirmedPayments() {
     const saved = localStorage.getItem(PAYMENT_STORAGE_KEY);
@@ -312,6 +255,13 @@
 
   function saveConfirmedPayments(obj) {
     localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(obj));
+  }
+
+  function confirmPayment(productId, btn) {
+    let confirmedPayments = loadConfirmedPayments();
+    confirmedPayments[productId] = true;
+    saveConfirmedPayments(confirmedPayments);
+    updateConfirmButton(btn, true);
   }
 
   function updateConfirmButton(btn, confirmed) {
@@ -326,17 +276,15 @@
     }
   }
 
-  function confirmPayment(productId, btn) {
-    let confirmedPayments = loadConfirmedPayments();
-    confirmedPayments[productId] = true;
-    saveConfirmedPayments(confirmedPayments);
-    updateConfirmButton(btn, true);
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    return d.toLocaleString("az-AZ").replace(",", "");
   }
 
   function createProductCard(product) {
     const card = document.createElement("div");
     card.className = "product-card";
-
     card.innerHTML = `
       <img src="data:image/jpeg;base64,${product.photo}" alt="${product.title || 'Məhsul'}" />
       <div class="product-info">
@@ -351,27 +299,6 @@
       </div>
     `;
 
-    card.querySelector(".delete-btn").addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (confirm("Bu məhsulu silmək istədiyinizə əminsiniz?")) {
-        const idToDelete = product._id || product.ID || product.id;
-        if (idToDelete) {
-          await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
-          card.remove();
-          showNotification("🗑️ Məhsul silindi!");
-        }
-      }
-    });
-
-    const confirmBtn = card.querySelector(".confirm-btn");
-    const currentId = product.ID || product._id || product.id;
-    const confirmedPayments = loadConfirmedPayments();
-    if (confirmedPayments[currentId]) updateConfirmButton(confirmBtn, true);
-    confirmBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      confirmPayment(currentId, confirmBtn);
-    });
-
     card.addEventListener("click", (e) => {
       if (!e.target.classList.contains("delete-btn") && !e.target.classList.contains("confirm-btn")) {
         modalContent.innerHTML = `
@@ -384,6 +311,38 @@
         `;
         modal.style.display = "flex";
       }
+    });
+
+    modalContent.addEventListener("click", (e) => {
+      if (e.target.id === "modalCloseBtn" || e.target.closest("#modalCloseBtn")) {
+        modal.style.display = "none";
+      }
+    });
+
+    // Silmə
+    const deleteBtn = card.querySelector(".delete-btn");
+    deleteBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (confirm("Bu məhsulu silmək istədiyinizə əminsiniz?")) {
+        const idToDelete = product._id || product.ID || product.id;
+        try {
+          await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
+          card.remove();
+          showNotification("🗑️ Məhsul silindi!");
+        } catch {
+          alert("Silinmə zamanı xəta baş verdi.");
+        }
+      }
+    });
+
+    // Təsdiqlə
+    const confirmBtn = card.querySelector(".confirm-btn");
+    const confirmedPayments = loadConfirmedPayments();
+    const currentId = product.ID || product._id || product.id;
+    if (confirmedPayments[currentId]) updateConfirmButton(confirmBtn, true);
+    confirmBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      confirmPayment(currentId, confirmBtn);
     });
 
     return card;
@@ -432,37 +391,31 @@
     }
   }
 
-  async function deleteAllProducts() {
-    if (!confirm("Bütün məhsulları silmək istədiyinizə əminsiniz?")) return;
-
-    try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      const all = data.allQolbaq || [];
-      for (const item of all) {
-        const id = item._id || item.ID || item.id;
-        if (id) {
-          await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-        }
-      }
-      products = [];
-      productContainer.innerHTML = "";
-      showNotification("✅ Bütün məhsullar silindi!");
-    } catch {
-      alert("Xəta baş verdi.");
-    }
+  function showNotification(text = "✅ Yeni məhsul əlavə olundu!") {
+    notification.textContent = text;
+    notification.style.display = "block";
+    setTimeout(() => notification.style.display = "none", 4000);
   }
+
+  // 🧹 Hamısını sil
+  document.getElementById("delete-all-btn").addEventListener("click", async () => {
+    if (confirm("Bütün məhsulları silmək istədiyinizə əminsiniz?")) {
+      for (const product of products) {
+        const idToDelete = product._id || product.ID || product.id;
+        await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
+      }
+      fetchProducts();
+      showNotification("🗑️ Bütün məhsullar silindi!");
+    }
+  });
 
   document.addEventListener("DOMContentLoaded", () => {
     fetchProducts();
     setInterval(() => fetchProducts(true), 10000);
-    deleteAllBtn.addEventListener("click", deleteAllProducts);
   });
 
   modal.addEventListener("click", (e) => {
-    if (e.target === modal || e.target.id === "modalCloseBtn" || e.target.closest("#modalCloseBtn")) {
-      modal.style.display = "none";
-    }
+    if (e.target === modal) modal.style.display = "none";
   });
 </script>
 
