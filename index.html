@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Məhsullar</title>
   <style>
-    /* CSS hissəsi əvvəlki kimidir — dəyişmədən saxlanılıb */
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f9;
@@ -128,6 +127,7 @@
     button.delete-btn {
       background-color: #dc3545;
     }
+
     button.delete-btn:hover {
       background-color: #bd2130;
     }
@@ -140,6 +140,7 @@
       gap: 5px;
       font-weight: bold;
     }
+
     button.confirm-btn:hover {
       background-color: #1e7e34;
     }
@@ -253,6 +254,7 @@
 <div id="product-container" class="product-container"></div>
 <p id="message" class="loading">Məlumatlar yüklənir...</p>
 
+<!-- Modal -->
 <div id="productModal">
   <div id="modalContent"></div>
 </div>
@@ -267,7 +269,6 @@
 
   let products = [];
   let lastProductCount = 0;
-
   const PAYMENT_STORAGE_KEY = "paymentConfirmedProducts";
 
   function loadConfirmedPayments() {
@@ -315,7 +316,6 @@
       </div>
     `;
 
-    // Modal açmaq
     card.addEventListener("click", (e) => {
       if (!e.target.classList.contains("delete-btn") && !e.target.classList.contains("confirm-btn")) {
         modalContent.innerHTML = `
@@ -335,7 +335,7 @@
       }
     });
 
-    // Silmə
+    // ✅ SİLMƏ: Sayfa yenilənmədən DOM-dan sil
     const deleteBtn = card.querySelector(".delete-btn");
     deleteBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -349,15 +349,16 @@
 
           const res = await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
+
+          card.remove(); // ⬅️ DOM-dan sil
           showNotification("🗑️ Məhsul silindi!");
-          await fetchProducts();
         } catch (err) {
           alert("Silinmə zamanı xəta baş verdi.");
         }
       }
     });
 
-    // Ödəniş
+    // Ödənişi təsdiqlə
     const confirmBtn = card.querySelector(".confirm-btn");
     const confirmedPayments = loadConfirmedPayments();
     const currentId = product.ID || product._id || product.id;
@@ -375,9 +376,7 @@
 
   function displayProducts(list) {
     productContainer.innerHTML = "";
-    list.forEach(p => {
-      productContainer.appendChild(createProductCard(p));
-    });
+    list.forEach(p => productContainer.appendChild(createProductCard(p)));
   }
 
   function sortProducts(type) {
@@ -432,7 +431,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     fetchProducts();
-    setInterval(() => fetchProducts(true), 10000);
+    setInterval(() => fetchProducts(true), 10000); // Yeni məhsul üçün
   });
 
   modal.addEventListener("click", (e) => {
