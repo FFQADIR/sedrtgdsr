@@ -291,7 +291,7 @@
     if (confirmed) {
       btn.classList.add("confirmed");
       btn.disabled = true;
-      btn.innerHTML = <span class="checkmark">✔️</span> Ödəniş təsdiqləndi;
+      btn.innerHTML = `<span class="checkmark">✔️</span> Ödəniş təsdiqləndi`;
     } else {
       btn.classList.remove("confirmed");
       btn.disabled = false;
@@ -299,32 +299,47 @@
     }
   }
 
+  // Tarixi oxunaqlı formatda göstərmək üçün funksiya
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("az-AZ", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
   function createProductCard(product) {
     const card = document.createElement("div");
     card.className = "product-card";
 
-    card.innerHTML = 
+    card.innerHTML = `
       <img src="data:image/jpeg;base64,${product.photo}" alt="${product.title || 'Məhsul'}" />
       <div class="product-info">
         <h2>${product.title || 'Adsız Məhsul'}</h2>
         <p class="price">${product.price || 0} ₼</p>
         <p>ID: ${product.ID || product._id || ''}</p>
+        <p>Əlavə olunub: ${formatDate(product.createdAt)}</p>
         <div class="btn-group">
           <button class="delete-btn">Sil</button>
           <button class="confirm-btn">Ödənişi təsdiqlə</button>
         </div>
       </div>
-    ;
+    `;
 
     card.addEventListener("click", (e) => {
       if (!e.target.classList.contains("delete-btn") && !e.target.classList.contains("confirm-btn")) {
-        modalContent.innerHTML = 
+        modalContent.innerHTML = `
           <img src="data:image/jpeg;base64,${product.photo}" />
           <h2>${product.title || 'Adsız Məhsul'}</h2>
           <p class="price">${product.price || 0} ₼</p>
           <p>ID: ${product.ID || product._id || ''}</p>
+          <p>Əlavə olunub: ${formatDate(product.createdAt)}</p>
           <button id="modalCloseBtn" class="modal-close-btn">× <span class="close-text">Bağla</span></button>
-        ;
+        `;
         modal.style.display = "flex";
       }
     });
@@ -347,7 +362,7 @@
             return;
           }
 
-          const res = await fetch(${API_URL}/${idToDelete}, { method: "DELETE" });
+          const res = await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
 
           card.remove(); // ⬅️ DOM-dan sil
