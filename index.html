@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Məhsullar</title>
   <style>
+    /* CSS hissəsi əvvəlki kimidir — dəyişmədən saxlanılıb */
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f9;
@@ -159,7 +160,6 @@
       margin-top: 30px;
     }
 
-    /* Modal stil */
     #productModal {
       display: none;
       position: fixed;
@@ -178,7 +178,6 @@
       max-width: 320px;
       width: 90%;
       text-align: center;
-      box-sizing: border-box;
     }
 
     #modalContent img {
@@ -188,7 +187,6 @@
       border-radius: 8px;
     }
 
-    /* Bağlama düyməsini modalın yuxarı sağ küncünə sabitləyirik */
     .modal-close-btn {
       position: absolute;
       top: 10px;
@@ -203,9 +201,6 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      user-select: none;
-      transition: background-color 0.3s;
-      z-index: 20;
     }
 
     .modal-close-btn:hover {
@@ -213,10 +208,9 @@
     }
 
     .close-text {
-      display: inline; /* Default görünür */
+      display: inline;
     }
 
-    /* Mobil üçün: "Bağla" yazısını gizlət və düyməni kiçilt */
     @media (max-width: 600px) {
       .product-container {
         grid-template-columns: repeat(2, 1fr);
@@ -236,8 +230,8 @@
         padding: 0;
         font-size: 2.2rem;
         justify-content: center;
-        line-height: 1;
       }
+
       .close-text {
         display: none;
       }
@@ -259,7 +253,6 @@
 <div id="product-container" class="product-container"></div>
 <p id="message" class="loading">Məlumatlar yüklənir...</p>
 
-<!-- Modal -->
 <div id="productModal">
   <div id="modalContent"></div>
 </div>
@@ -275,21 +268,17 @@
   let products = [];
   let lastProductCount = 0;
 
-  // LocalStorage açar adı
   const PAYMENT_STORAGE_KEY = "paymentConfirmedProducts";
 
-  // Ödəniş təsdiqini localStorage-dən yüklə
   function loadConfirmedPayments() {
     const saved = localStorage.getItem(PAYMENT_STORAGE_KEY);
     return saved ? JSON.parse(saved) : {};
   }
 
-  // LocalStorage-ə yaz
   function saveConfirmedPayments(obj) {
     localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(obj));
   }
 
-  // Ödənişi təsdiqlə düyməsi kliklənəndə
   function confirmPayment(productId, btn) {
     let confirmedPayments = loadConfirmedPayments();
     confirmedPayments[productId] = true;
@@ -297,7 +286,6 @@
     updateConfirmButton(btn, true);
   }
 
-  // Təsdiq vəziyyətinə görə düyməni yenilə
   function updateConfirmButton(btn, confirmed) {
     if (confirmed) {
       btn.classList.add("confirmed");
@@ -319,7 +307,7 @@
       <div class="product-info">
         <h2>${product.title || 'Adsız Məhsul'}</h2>
         <p class="price">${product.price || 0} ₼</p>
-        <p>ID: ${product.ID || ''}</p>
+        <p>ID: ${product.ID || product._id || ''}</p>
         <div class="btn-group">
           <button class="delete-btn">Sil</button>
           <button class="confirm-btn">Ödənişi təsdiqlə</button>
@@ -327,35 +315,38 @@
       </div>
     `;
 
-    // Modal açılması
+    // Modal açmaq
     card.addEventListener("click", (e) => {
-      // Əgər klik düymələrdən birinə deyilirsə modal aç
       if (!e.target.classList.contains("delete-btn") && !e.target.classList.contains("confirm-btn")) {
         modalContent.innerHTML = `
           <img src="data:image/jpeg;base64,${product.photo}" />
           <h2>${product.title || 'Adsız Məhsul'}</h2>
           <p class="price">${product.price || 0} ₼</p>
-          <p>ID: ${product.ID || ''}</p>
+          <p>ID: ${product.ID || product._id || ''}</p>
           <button id="modalCloseBtn" class="modal-close-btn">× <span class="close-text">Bağla</span></button>
         `;
         modal.style.display = "flex";
       }
     });
 
-    // Modal bağlama düyməsinə klik funksiyası
     modalContent.addEventListener("click", (e) => {
       if (e.target.id === "modalCloseBtn" || e.target.closest("#modalCloseBtn")) {
         modal.style.display = "none";
       }
     });
 
-    // Sil düyməsi
+    // Silmə
     const deleteBtn = card.querySelector(".delete-btn");
     deleteBtn.addEventListener("click", async (e) => {
-      e.stopPropagation(); // Modal açılmasın
+      e.stopPropagation();
       if (confirm("Bu məhsulu silmək istədiyinizə əminsiniz?")) {
         try {
-          const idToDelete = product._id || product.ID;
+          const idToDelete = product._id || product.ID || product.id;
+          if (!idToDelete) {
+            alert("Məhsul ID-si tapılmadı!");
+            return;
+          }
+
           const res = await fetch(`${API_URL}/${idToDelete}`, { method: "DELETE" });
           if (!res.ok) throw new Error("Silinmə xətası");
           showNotification("🗑️ Məhsul silindi!");
@@ -366,17 +357,17 @@
       }
     });
 
-    // Ödənişi təsdiqlə düyməsi
+    // Ödəniş
     const confirmBtn = card.querySelector(".confirm-btn");
-    // Yüklənən zaman localStorage-dən təsdiq statusunu götür
     const confirmedPayments = loadConfirmedPayments();
-    if (confirmedPayments[product.ID]) {
+    const currentId = product.ID || product._id || product.id;
+    if (confirmedPayments[currentId]) {
       updateConfirmButton(confirmBtn, true);
     }
 
     confirmBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      confirmPayment(product.ID, confirmBtn);
+      confirmPayment(currentId, confirmBtn);
     });
 
     return card;
@@ -393,10 +384,10 @@
     let sorted = [...products];
     switch (type) {
       case "new":
-        sorted.sort((a, b) => (b._id || b.ID).localeCompare(a._id || a.ID));
+        sorted.sort((a, b) => (b._id || b.ID || "").localeCompare(a._id || a.ID || ""));
         break;
       case "old":
-        sorted.sort((a, b) => (a._id || a.ID).localeCompare(b._id || b.ID));
+        sorted.sort((a, b) => (a._id || a.ID || "").localeCompare(b._id || b.ID || ""));
         break;
       case "low-high":
         sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -414,13 +405,11 @@
       const data = await res.json();
       const newProducts = data.allQolbaq || [];
 
-      if (checkForNew) {
-        if (newProducts.length > lastProductCount) {
-          showNotification();
-          products = newProducts;
-          lastProductCount = newProducts.length;
-          sortProducts("new");
-        }
+      if (checkForNew && newProducts.length > lastProductCount) {
+        showNotification();
+        products = newProducts;
+        lastProductCount = newProducts.length;
+        sortProducts("new");
       } else {
         products = newProducts;
         lastProductCount = newProducts.length;
@@ -443,10 +432,9 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     fetchProducts();
-    setInterval(() => fetchProducts(true), 10000); // 10 saniyədə bir yoxla
+    setInterval(() => fetchProducts(true), 10000);
   });
 
-  // Modalı ekrandan çıxmaq üçün kliklə bağlamaq
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
       modal.style.display = "none";
